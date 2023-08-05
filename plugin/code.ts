@@ -11,7 +11,76 @@ figma.showUI(__html__);
 
 // Skip over invisible nodes and their descendants inside instances
 // for faster performance.
-// figma.skipInvisibleInstanceChildren = true
+figma.skipInvisibleInstanceChildren = true;
+
+// Define the TreeNode interface with a 'data' property
+interface TreeNode<T> {
+  key: string;
+  data: T; // 'data' can be of any type you need
+  children: TreeNode<T>[];
+}
+
+// Define the Tree class
+class Tree<T> {
+  private root: TreeNode<T> | null;
+
+  constructor() {
+    this.root = null;
+  }
+
+  // Add a node to the tree
+  insert(key: string, data: T, parentKey?: string): void {
+    const newNode: TreeNode<T> = { key, data, children: [] };
+
+    if (!parentKey) {
+      // If parentKey is not provided, make the new node the root
+      this.root = newNode;
+    } else {
+      // Find the parent node in the tree
+      const parentNode = this.findNode(this.root, parentKey);
+      if (parentNode) {
+        // Add the new node as a child of the parent node
+        parentNode.children.push(newNode);
+      } else {
+        console.error(`Parent node with key "${parentKey}" not found.`);
+      }
+    }
+  }
+
+  // Find a node in the tree given its key
+  find(key: string): TreeNode<T> | null {
+    return this.findNode(this.root, key);
+  }
+
+  // Internal function to find a node in the tree
+  private findNode(node: TreeNode<T> | null, key: string): TreeNode<T> | null {
+    if (!node) {
+      return null;
+    }
+
+    if (node.key === key) {
+      return node;
+    }
+
+    for (const child of node.children) {
+      const foundNode = this.findNode(child, key);
+      if (foundNode) {
+        return foundNode;
+      }
+    }
+
+    return null;
+  }
+}
+
+// // Example usage:
+// const tree = new Tree();
+// tree.insert("A", { name: "Node A" });
+// tree.insert("B", { name: "Node B" }, "A");
+// tree.insert("C", { name: "Node C" }, "A");
+// tree.insert("D", { name: "Node D" }, "B");
+
+// const nodeB = tree.find("B");
 
 async function print(input: string) {
   const text = figma.createText();
@@ -32,10 +101,13 @@ async function print(input: string) {
 
 figma.ui.onmessage = (msg) => {
   if (msg.type === "export-html") {
-    let nodeList: BaseNode[] = [];
-    function traverse(node: BaseNode) {
-      nodeList = [...nodeList, node];
-      print(node.type);
+    let nodeTree: Tree<PageNode | SceneNode> = new Tree();
+    function traverse(node: PageNode | SceneNode) {
+      if (node.type === "PAGE") {
+        nodeTree.insert(node.id, node);
+      } else {
+        nodeTree.insert(node.id, node, node.parent?.id);
+      }
       if ("children" in node) {
         if (node.type !== "INSTANCE") {
           for (const child of node.children) {
@@ -44,6 +116,7 @@ figma.ui.onmessage = (msg) => {
         }
       }
     }
-    traverse(figma.root); // start the traversal at the root
+    traverse(figma.currentPage); // start the traversal at the current page
+    console.log(nodeTree);
   }
 };
