@@ -4,9 +4,9 @@
 # FigMatic
 A Figma plugin to help you go from design to deployment with ease. XO. This project is awesome...
 ## Team members
-1. [Suryan](https://github.com/TH-Activities/saturday-hack-night-template)
-2. [Arjun](https://github.com/TH-Activities/saturday-hack-night-template)
-3. [B Akash](https://github.com/TH-Activities/saturday-hack-night-template)
+1. [Suryan](https://github.com/suryan-s)
+2. [Arjun](https://github.com/arjunindia)
+3. [B Akash](https://github.com/AkashKannan2003)
 ## Link to product walkthrough
 [link to video](Link Here)
 ## How it Works ?
