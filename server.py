@@ -6,6 +6,10 @@ app = FastAPI()
 async def root():
     return {"message": "Hello World"}
 
+@app.get("/ping")
+async def ping():
+    return {"pong"}
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, port=8000)
