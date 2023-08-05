@@ -16,16 +16,16 @@ figma.skipInvisibleInstanceChildren = true;
 // Define the TreeNode interface with a 'data' property
 interface TreeNode<T> {
   key: string;
-  data: T; // 'data' can be of any type you need
+  data: any; // 'data' can be of any type you need
   children: TreeNode<T>[];
 }
 
 // Define the Tree class
 class Tree<T> {
-  private root: TreeNode<T> | null;
+  public root: TreeNode<T> | null;
 
-  constructor() {
-    this.root = null;
+  constructor(t?: TreeNode<T>) {
+    this.root = t || null;
   }
 
   // Add a node to the tree
@@ -45,6 +45,35 @@ class Tree<T> {
         console.error(`Parent node with key "${parentKey}" not found.`);
       }
     }
+  }
+  async generateTreeObject(node: TreeNode<T> | null): Promise<any> {
+    if (!node) {
+      return null;
+    }
+
+    const { key, data } = node;
+    const cssContent = await node.data.getCSSAsync();
+
+    const newNodeInfo = {
+      key,
+      data: {
+        name: data.name,
+        id: data.id,
+        text: data.characters || null,
+        isAsset: data.isAsset,
+      },
+      cssContent,
+      type: data.type,
+      children: [] as any,
+    };
+
+    if (node.children.length > 0) {
+      newNodeInfo.children = await Promise.all(
+        node.children.map((child) => this.generateTreeObject(child))
+      );
+    }
+
+    return newNodeInfo;
   }
 
   // Find a node in the tree given its key
@@ -99,6 +128,26 @@ async function print(input: string) {
   figma.currentPage.appendChild(text);
 }
 
+async function printTree(tree: Tree<PageNode | SceneNode>) {
+  const result = await tree.generateTreeObject(tree.root);
+  console.log(result);
+}
+function generateCSSString(
+  className: string,
+  cssProperties: Record<string, string | number>
+): string {
+  let cssPropertiesString = "";
+
+  for (const property in cssProperties) {
+    if (Object.prototype.hasOwnProperty.call(cssProperties, property)) {
+      const value = cssProperties[property];
+      cssPropertiesString += `${property}: ${value}; `;
+    }
+  }
+
+  return `.${className} { ${cssPropertiesString} }`;
+}
+function generateHTML(obj: any) {}
 figma.ui.onmessage = (msg) => {
   if (msg.type === "export-html") {
     let nodeTree: Tree<PageNode | SceneNode> = new Tree();
@@ -109,14 +158,13 @@ figma.ui.onmessage = (msg) => {
         nodeTree.insert(node.id, node, node.parent?.id);
       }
       if ("children" in node) {
-        if (node.type !== "INSTANCE") {
-          for (const child of node.children) {
-            traverse(child);
-          }
+        for (const child of node.children) {
+          traverse(child);
         }
       }
     }
     traverse(figma.currentPage); // start the traversal at the current page
     console.log(nodeTree);
+    printTree(nodeTree);
   }
 };
