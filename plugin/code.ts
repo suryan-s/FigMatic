@@ -111,43 +111,87 @@ class Tree<T> {
 
 // const nodeB = tree.find("B");
 
-async function print(input: string) {
-  const text = figma.createText();
-
-  // Move to (50, 50)
-  text.x = 50;
-  text.y = 50;
-
-  // Load the font in the text node before setting the characters
-  await figma.loadFontAsync({ family: "Inter", style: "Regular" });
-  text.characters = `${input}`;
-
-  // Set bigger font size and red color
-  text.fontSize = 18;
-  text.fills = [{ type: "SOLID", color: { r: 1, g: 0, b: 0 } }];
-  figma.currentPage.appendChild(text);
-}
-
 async function printTree(tree: Tree<PageNode | SceneNode>) {
   const result = await tree.generateTreeObject(tree.root);
-  console.log(result);
+  const HTML = generateHTMLString(result);
+  const CSS = generateCSSString(result);
+  console.log(result, HTML, CSS);
+  figma.ui.postMessage({ html: HTML, css: CSS, title: tree.root?.data.name });
 }
-function generateCSSString(
-  className: string,
-  cssProperties: Record<string, string | number>
-): string {
-  let cssPropertiesString = "";
+function generateCSSString(node: any, depth = 0) {
+  let cssString = "";
 
-  for (const property in cssProperties) {
-    if (Object.prototype.hasOwnProperty.call(cssProperties, property)) {
-      const value = cssProperties[property];
-      cssPropertiesString += `${property}: ${value}; `;
+  // Indentation for nested CSS rules
+  const indent = "".repeat(depth * 2);
+
+  // Generate CSS rules for the current node
+  if (node.key) {
+    node.key = node.key.replace(/:/g, "-");
+    cssString += indent + "." + node.key + " {";
+    // Convert cssContent object to CSS properties
+    if (node.cssContent) {
+      Object.keys(node.cssContent).forEach((property) => {
+        cssString +=
+          indent + "  " + property + ": " + node.cssContent[property] + ";";
+      });
+    }
+    cssString += indent + "}";
+  }
+
+  // Generate CSS rules for child nodes
+  if (node.children && node.children.length > 0) {
+    for (const childNode of node.children) {
+      cssString += generateCSSString(childNode, depth + 1);
     }
   }
 
-  return `.${className} { ${cssPropertiesString} }`;
+  return cssString;
 }
-function generateHTML(obj: any) {}
+
+function generateHTMLString(node: any) {
+  let htmlString = "<!DOCTYPE html>";
+  node.key = node.key?.replace(/:/g, "-");
+  node.key = `class-${node.key}`;
+
+  if (node.type === "PAGE") {
+    htmlString += `<html><head><link rel="stylesheet" href="style.css"></head><body>`;
+  } else if (node.type === "FRAME") {
+    htmlString += '<div class="' + node.key + '">';
+  } else if (node.type === "COMPONENT") {
+    htmlString += '<div class="' + node.key + '">';
+  } else if (node.type === "GROUP") {
+    htmlString += '<div class="' + node.key + '">';
+  } else if (node.type === "SECTION") {
+    htmlString += '<div class="' + node.key + '">';
+  } else if (node.type === "RECTANGLE") {
+    htmlString += '<div class="' + node.key + '">';
+  } else if (node.type === "TEXT") {
+    htmlString += '<p class="' + node.key + '">' + node.data.text + "</p>";
+  }
+
+  if (node.children && node.children.length > 0) {
+    for (const childNode of node.children) {
+      htmlString += generateHTMLString(childNode);
+    }
+  }
+
+  if (node.type === "PAGE") {
+    htmlString += "</body></html>";
+  } else if (node.type === "FRAME") {
+    htmlString += "</div>";
+  } else if (node.type === "COMPONENT") {
+    htmlString += '<div class="' + node.key + '">';
+  } else if (node.type === "GROUP") {
+    htmlString += '<div class="' + node.key + '">';
+  } else if (node.type === "SECTION") {
+    htmlString += '<div class="' + node.key + '">';
+  } else if (node.type === "RECTANGLE") {
+    htmlString += '<div class="' + node.key + '">';
+  }
+
+  return htmlString;
+}
+
 figma.ui.onmessage = (msg) => {
   if (msg.type === "export-html") {
     let nodeTree: Tree<PageNode | SceneNode> = new Tree();
