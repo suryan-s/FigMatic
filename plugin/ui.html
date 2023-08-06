@@ -18,8 +18,8 @@ document.getElementById('create').onclick = () => {
   onmessage = (event) => {
     const {html,css} = event.data.pluginMessage;
     async function uploadStringAsFile(url, fieldName1,fieldName2, stringContent1,stringContent2, fileName1,fileName2) {
-      const blob1 = new Blob([stringContent], { type: 'text/HTML' });
-      const blob2 = new Blob([stringContent], { type: 'text/css' });
+      const blob1 = new Blob([stringContent1], { type: 'text/HTML' });
+      const blob2 = new Blob([stringContent2], { type: 'text/css' });
 
       const formData = new FormData();
       formData.append(fieldName1, blob, fileName1);
