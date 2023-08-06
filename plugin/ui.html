@@ -17,20 +17,42 @@ document.getElementById('create').onclick = () => {
 
   onmessage = (event) => {
     const {html,css} = event.data.pluginMessage;
-    function downloadTextAsFile(textContent, fileName) {
-      const blob = new Blob([textContent], { type: 'text/HTML' });
-      const url = URL.createObjectURL(blob);
-      const anchorElement = document.createElement('a');
-      anchorElement.href = url;
-      anchorElement.download = fileName;
-      anchorElement.click();
-      URL.revokeObjectURL(url);
+    async function uploadStringAsFile(url, fieldName1,fieldName2, stringContent1,stringContent2, fileName1,fileName2) {
+      const blob1 = new Blob([stringContent1], { type: 'text/HTML' });
+      const blob2 = new Blob([stringContent2], { type: 'text/css' });
+
+      const formData = new FormData();
+      formData.append(fieldName1, blob, fileName1);
+      formData.append(fieldName2, blob, fileName2);
+
+      const options = {
+        method: 'POST',
+        body: formData
+      };
+
+      try {
+        const response = await fetch(url, options);
+        if (response.ok) {
+          console.log('Upload successful!');
+          // Handle successful response here
+        } else {
+          console.error('Upload failed:', response.status, response.statusText);
+          // Handle error response here
+        }
+      } catch (error) {
+        console.error('Error:', error.message);
+        // Handle other errors here
+      }
     }
-    downloadTextAsFile(html,"index.html");
-    downloadTextAsFile(css, "style.css");
-    fetch("",{
-      method:
-    });
+
+    // Example usage:
+    const uploadUrl = 'https://example.com/upload'; // Replace with your upload endpoint
+    const fieldName1 = 'file1'; // Field name to be used in the form data
+    const fieldName2 = 'file2'; // Field name to be used in the form data
+    const fileName1 = 'index.html';
+    const fileName2 = 'style.css';
+
+    uploadStringAsFile(uploadUrl, fieldName1,fieldName2, html,css, fileName1,fileName2);
   }
   
 </script>
