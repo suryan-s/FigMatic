@@ -1,4 +1,5 @@
 import requests
+from typing import List
 from fastapi import FastAPI, File, UploadFile
 from github import Github, Auth, GithubException
 
@@ -48,7 +49,7 @@ async def create_repo(access_token: str, repo_name: str):
 
 
 @app.put("/api/deploy")
-async def deploy(access_token: str, repo_name: str, files: list[UploadFile] = File(...)):
+async def deploy(access_token: str, repo_name: str, files: List[UploadFile] = File(...)):
     """
     Deploy the files to GitHub pages
     :param access_token:
