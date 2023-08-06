@@ -1,5 +1,6 @@
 
 <h2>Rectangle Creator</h2>
+<input type="text" placeholder="enter your github access token">
 <button id="create">Create</button>
 <!-- <button id="cancel">Cancel</button> -->
 
@@ -14,6 +15,24 @@ document.getElementById('create').onclick = () => {
   // parent.postMessage({ pluginMessage: { type: 'cancel' } }, '*')
 // }
 
+  onmessage = (event) => {
+    const {html,css} = event.data.pluginMessage;
+    function downloadTextAsFile(textContent, fileName) {
+      const blob = new Blob([textContent], { type: 'text/HTML' });
+      const url = URL.createObjectURL(blob);
+      const anchorElement = document.createElement('a');
+      anchorElement.href = url;
+      anchorElement.download = fileName;
+      anchorElement.click();
+      URL.revokeObjectURL(url);
+    }
+    downloadTextAsFile(html,"index.html");
+    downloadTextAsFile(css, "style.css");
+    fetch("",{
+      method:
+    });
+  }
+  
 </script>
 
 

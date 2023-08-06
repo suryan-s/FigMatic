@@ -16,16 +16,16 @@ figma.skipInvisibleInstanceChildren = true;
 // Define the TreeNode interface with a 'data' property
 interface TreeNode<T> {
   key: string;
-  data: T; // 'data' can be of any type you need
+  data: any; // 'data' can be of any type you need
   children: TreeNode<T>[];
 }
 
 // Define the Tree class
 class Tree<T> {
-  private root: TreeNode<T> | null;
+  public root: TreeNode<T> | null;
 
-  constructor() {
-    this.root = null;
+  constructor(t?: TreeNode<T>) {
+    this.root = t || null;
   }
 
   // Add a node to the tree
@@ -45,6 +45,35 @@ class Tree<T> {
         console.error(`Parent node with key "${parentKey}" not found.`);
       }
     }
+  }
+  async generateTreeObject(node: TreeNode<T> | null): Promise<any> {
+    if (!node) {
+      return null;
+    }
+
+    const { key, data } = node;
+    const cssContent = await node.data.getCSSAsync();
+
+    const newNodeInfo = {
+      key,
+      data: {
+        name: data.name,
+        id: data.id,
+        text: data.characters || null,
+        isAsset: data.isAsset,
+      },
+      cssContent,
+      type: data.type,
+      children: [] as any,
+    };
+
+    if (node.children.length > 0) {
+      newNodeInfo.children = await Promise.all(
+        node.children.map((child) => this.generateTreeObject(child))
+      );
+    }
+
+    return newNodeInfo;
   }
 
   // Find a node in the tree given its key
@@ -82,21 +111,85 @@ class Tree<T> {
 
 // const nodeB = tree.find("B");
 
-async function print(input: string) {
-  const text = figma.createText();
+async function printTree(tree: Tree<PageNode | SceneNode>) {
+  const result = await tree.generateTreeObject(tree.root);
+  const HTML = generateHTMLString(result);
+  const CSS = generateCSSString(result);
+  console.log(result, HTML, CSS);
+  figma.ui.postMessage({ html: HTML, css: CSS, title: tree.root?.data.name });
+}
+function generateCSSString(node: any, depth = 0) {
+  let cssString = "";
 
-  // Move to (50, 50)
-  text.x = 50;
-  text.y = 50;
+  // Indentation for nested CSS rules
+  const indent = "".repeat(depth * 2);
 
-  // Load the font in the text node before setting the characters
-  await figma.loadFontAsync({ family: "Inter", style: "Regular" });
-  text.characters = `${input}`;
+  // Generate CSS rules for the current node
+  if (node.key) {
+    node.key = node.key.replace(/:/g, "-");
+    cssString += indent + "." + node.key + " {";
+    // Convert cssContent object to CSS properties
+    if (node.cssContent) {
+      Object.keys(node.cssContent).forEach((property) => {
+        cssString +=
+          indent + "  " + property + ": " + node.cssContent[property] + ";";
+      });
+    }
+    cssString += indent + "}";
+  }
 
-  // Set bigger font size and red color
-  text.fontSize = 18;
-  text.fills = [{ type: "SOLID", color: { r: 1, g: 0, b: 0 } }];
-  figma.currentPage.appendChild(text);
+  // Generate CSS rules for child nodes
+  if (node.children && node.children.length > 0) {
+    for (const childNode of node.children) {
+      cssString += generateCSSString(childNode, depth + 1);
+    }
+  }
+
+  return cssString;
+}
+
+function generateHTMLString(node: any) {
+  let htmlString = "<!DOCTYPE html>";
+  node.key = node.key?.replace(/:/g, "-");
+  node.key = `class-${node.key}`;
+
+  if (node.type === "PAGE") {
+    htmlString += `<html><head><link rel="stylesheet" href="style.css"></head><body>`;
+  } else if (node.type === "FRAME") {
+    htmlString += '<div class="' + node.key + '">';
+  } else if (node.type === "COMPONENT") {
+    htmlString += '<div class="' + node.key + '">';
+  } else if (node.type === "GROUP") {
+    htmlString += '<div class="' + node.key + '">';
+  } else if (node.type === "SECTION") {
+    htmlString += '<div class="' + node.key + '">';
+  } else if (node.type === "RECTANGLE") {
+    htmlString += '<div class="' + node.key + '">';
+  } else if (node.type === "TEXT") {
+    htmlString += '<p class="' + node.key + '">' + node.data.text + "</p>";
+  }
+
+  if (node.children && node.children.length > 0) {
+    for (const childNode of node.children) {
+      htmlString += generateHTMLString(childNode);
+    }
+  }
+
+  if (node.type === "PAGE") {
+    htmlString += "</body></html>";
+  } else if (node.type === "FRAME") {
+    htmlString += "</div>";
+  } else if (node.type === "COMPONENT") {
+    htmlString += '<div class="' + node.key + '">';
+  } else if (node.type === "GROUP") {
+    htmlString += '<div class="' + node.key + '">';
+  } else if (node.type === "SECTION") {
+    htmlString += '<div class="' + node.key + '">';
+  } else if (node.type === "RECTANGLE") {
+    htmlString += '<div class="' + node.key + '">';
+  }
+
+  return htmlString;
 }
 
 figma.ui.onmessage = (msg) => {
@@ -109,14 +202,13 @@ figma.ui.onmessage = (msg) => {
         nodeTree.insert(node.id, node, node.parent?.id);
       }
       if ("children" in node) {
-        if (node.type !== "INSTANCE") {
-          for (const child of node.children) {
-            traverse(child);
-          }
+        for (const child of node.children) {
+          traverse(child);
         }
       }
     }
     traverse(figma.currentPage); // start the traversal at the current page
     console.log(nodeTree);
+    printTree(nodeTree);
   }
 };
