@@ -2,15 +2,14 @@ import requests
 from typing import List
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware import ContentSecurityPolicy
+from Secweb.ContentSecurityPolicy import Nonce_Processor, ContentSecurityPolicy
 from github import Github, Auth, GithubException
 
 from utils import add_github_actions, add_create_file, update_github_pages
 
 app = FastAPI()
-
+app.add_middleware(ContentSecurityPolicy, Option={'default-src': ["'self'"], 'base-uri': ["'self'"], 'block-all-mixed-content': []}, script_nonce=False, style_nonce=False)
 app.add_middleware(
-    ContentSecurityPolicy,
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
