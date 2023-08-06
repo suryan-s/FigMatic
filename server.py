@@ -38,10 +38,10 @@ async def create_repo(access_token: str, repo_name: str):
                 open('templates/README.md').read()
                 )
             add_github_actions(repo)
-            update_github_pages(access_token, owner=repo.owner.name, repo=repo.name)
+            html_url = update_github_pages(access_token, owner=repo.owner.name, repo=repo.name)
             add_create_file(repo)
 
-            return { "message": "Repository created successfully", "status": "success", "code": "201" }
+            return { "message": "Repository created successfully","html_url":html_url, "status": "success", "code": "201" }
         except GithubException:
             return { "message": "Repository already exists", "status": "error", "code": "422" }
     else:

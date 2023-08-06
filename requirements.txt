@@ -4,3 +4,4 @@ uvicorn
 fastapi~=0.101.0
 requests~=2.31.0
 SQLAlchemy~=2.0.19
+python-multipart
