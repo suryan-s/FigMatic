@@ -105,7 +105,7 @@ async def deploy_status(access_token: str, repo_name: str):
         else:
             return { "message": "Deployment ongoing", "status": "error", "code": "422" }
     except GithubException:
-        return { "message": "Repository does not exist", "status": "error", "code": "422" }
+        return { "message": "Repository does not exist", "status": "error", "code": "404" }
 
 
 if __name__ == "__main__":
