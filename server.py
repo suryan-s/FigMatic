@@ -2,6 +2,7 @@ import requests
 from typing import List
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware import ContentSecurityPolicy
 from github import Github, Auth, GithubException
 
 from utils import add_github_actions, add_create_file, update_github_pages
@@ -9,6 +10,7 @@ from utils import add_github_actions, add_create_file, update_github_pages
 app = FastAPI()
 
 app.add_middleware(
+    ContentSecurityPolicy,
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
