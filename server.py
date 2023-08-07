@@ -1,6 +1,6 @@
 import requests
 from typing import List
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, Request
 from fastapi.middleware.cors import CORSMiddleware
 from Secweb.ContentSecurityPolicy import Nonce_Processor, ContentSecurityPolicy
 from github import Github, Auth, GithubException
@@ -8,14 +8,22 @@ from github import Github, Auth, GithubException
 from utils import add_github_actions, add_create_file, update_github_pages
 
 app = FastAPI()
-app.add_middleware(ContentSecurityPolicy, Option={'default-src': ["'self'"], 'base-uri': ["'self'"], 'block-all-mixed-content': []}, script_nonce=False, style_nonce=False)
+app.add_middleware(ContentSecurityPolicy,
+                   Option={
+                       'default-src': ["'self'"],
+                       'base-uri': ["'self'"],
+                       'block-all-mixed-content': []
+                       },
+                   script_nonce=False,
+                   style_nonce=False
+                   )
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-)
+    )
 
 
 @app.get("/")
@@ -23,35 +31,36 @@ async def root():
     return { "message": "This is the base url for the FigMatic API" }
 
 
-@app.post("/api/create-repo")
-async def create_repo(access_token: str, repo_name: str):
+@app.post("/api/create-repo/")
+async def create_repo(request: Request):
     """
     Create a new repository
-    :param access_token:
-    :param repo_name:
+    :param request:
     :return:
     """
-    g = Github(auth=Auth.Token(access_token))
+    body = await request.json()
+    g = Github(auth=Auth.Token(body['access_token']))
     user = g.get_user()
     try:
-        is_repo_exists = True if user.get_repo(repo_name) else False
+        is_repo_exists = True if user.get_repo(body['repo_name']) else False
     except GithubException:
         is_repo_exists = False
 
     if not is_repo_exists:
         try:
-            user.create_repo(repo_name, private=False)
-            repo = user.get_repo(repo_name)
+            user.create_repo(body['repo_name'], private=False)
+            repo = user.get_repo(body['repo_name'])
             repo.create_file(
                 'README.md',
                 'Added README.md',
                 open('templates/README.md').read()
                 )
             add_github_actions(repo)
-            html_url = update_github_pages(access_token, owner=repo.owner.name, repo=repo.name)
+            html_url = update_github_pages(body['access_token'], owner=repo.owner.name, repo=repo.name)
             add_create_file(repo)
 
-            return { "message": "Repository created successfully","html_url":html_url, "status": "success", "code": "201" }
+            return { "message": "Repository created successfully", "html_url": html_url, "status": "success",
+                     "code": "201" }
         except GithubException:
             return { "message": "Repository already exists", "status": "error", "code": "422" }
     else:
@@ -59,14 +68,17 @@ async def create_repo(access_token: str, repo_name: str):
 
 
 @app.put("/api/deploy")
-async def deploy(access_token: str, repo_name: str, files: List[UploadFile] = File(...)):
+async def deploy(request: Request, files: List[UploadFile] = File(...)):
     """
     Deploy the files to GitHub pages
-    :param access_token:
-    :param repo_name:
+    :param request:
     :param files:
     :return:
     """
+    body = await request.json()
+    access_token = body['access_token']
+    repo_name = body['repo_name']
+
     if len(files) == 0:
         return {
             "message": "No files to deploy. Using the default files for deployment",
@@ -96,13 +108,15 @@ async def deploy(access_token: str, repo_name: str, files: List[UploadFile] = Fi
 
 
 @app.get("/api/deploy/status")
-async def deploy_status(access_token: str, repo_name: str):
+async def deploy_status(request: Request):
     """
     Get the status of the deployment
-    :param access_token:
-    :param repo_name:
+    :param request:
     :return:
     """
+    body = await request.json()
+    access_token = body['access_token']
+    repo_name = body['repo_name']
     g = Github(auth=Auth.Token(access_token))
     user = g.get_user()
     try:
