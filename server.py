@@ -1,8 +1,9 @@
-import requests
 from typing import List
+
+import requests
+from Secweb.ContentSecurityPolicy import ContentSecurityPolicy
 from fastapi import FastAPI, File, UploadFile, Request
 from fastapi.middleware.cors import CORSMiddleware
-from Secweb.ContentSecurityPolicy import Nonce_Processor, ContentSecurityPolicy
 from github import Github, Auth, GithubException
 
 from utils import add_github_actions, add_create_file, update_github_pages
